@@ -1,0 +1,213 @@
+class Character:
+    def __init__(self, name):
+        self.name=name
+        self.health=100
+        self.base_attack=15
+        self.base_defence=1
+        self.defence=1
+        self.classc=None
+        self.cooldown=0
+        self.atk=15
+        self.weapon=None
+        self.armor=None
+        self.weapon_n=None
+        self.armor_n=None
+        self.equiped_a=False
+        self.equiped_w=False
+    def take_damage(self,ammount):
+        self.health-=int(ammount*(1-self.defence/100))
+        
+    def attack(self,target):
+        if self.cooldown>0:
+            self.cooldown-=1
+        target.take_damage(self.atk)
+        if self.equiped_w:
+            self.weapon.dur-=5
+            if not self.weapon.dur_check():
+                print(f"{self.weapon.name} breaks after use")
+                self.weapon=None
+                self.weapon_n=None
+                self.equiped_w=False
+                self.atk=self.base_attack
+                
+        
+    def is_alive(self):
+        if self.health<=0:
+            return False
+        else:
+            return True
+            
+    def status(self):
+        print(f"{self.name}: {self.classc}\nWeapon: {self.weapon_n}\nArmor: {self.armor_n}\nHealth: {self.health}")
+    
+    def equip_weapon(self,weapon):
+        self.atk=weapon.attack_boost+self.base_attack
+        self.weapon_n=weapon.name
+        self.weapon=weapon
+        weapon.equiped_to=self
+        self.equiped_w=True
+        
+    def equip_armor(self,armor):
+        self.defence=armor.def_boost+self.base_defence
+        self.armor=armor
+        self.armor_n=armor.name
+        armor.equiped_to=self
+        self.equiped_a=True
+        
+    def unequip_armor(self):
+        self.defence=self.base_defence
+        self.armor=None
+        self.equiped_a=False
+        
+    def unequip_weapon(self):
+        self.atk=self.base_attack
+        self.weapon=None
+        self.equiped_w=False
+            
+class Mage(Character):
+    def __init__(self, name):
+        super().__init__(name)
+        self.base_defence=5
+        self.defence=5
+        self.mana=100
+        self.classc="mage"
+        
+    
+    def cast_spell(self,spell,target):
+        if self.cooldown>0:
+            self.cooldown-=1
+            print(f"Spells on cooldown for {self.cooldown} more turns")
+        else:
+            if spell.lower()=="fireball":
+                if self.mana<20:
+                    print(f"Not enough mana to cast {spell}")
+                else:
+                    self.mana-=20
+                    target.take_damage(30)
+                    self.cooldown=2
+            elif spell.lower()=="heal":
+                if self.mana<15:
+                    print(f"Not enough mana to cast {spell}")
+                elif self.health>=100:
+                    print(f"{self.name} is already at full health")
+                else:
+                    self.mana-=15
+                    self.health+=25
+                    self.cooldown=2
+            else: 
+                print(f"{spell} is not a valid spell")
+        
+    def status(self):
+        super().status()
+        print(f"Mana: {self.mana}\nSpell cooldown: {self.cooldown}")
+                
+class Warrior(Character):
+    def __init__(self, name):
+        super().__init__(name)
+        self.base_attack=15
+        self.base_defence=10
+        self.defence=10
+        self.rage=0
+        self.classc="warrior"
+        
+    
+    def take_damage(self,ammount):
+        super().take_damage(ammount)
+        self.rage+=1
+    
+    def power_strike(self,target):
+        if self.cooldown>0:
+            self.cooldown-=1
+            print(f"Power Strike on cooldown for {self.cooldown} more turns")
+        else:
+            if self.rage>=5:
+                self.rage=0
+                target.take_damage(2*self.base_attack)
+            else:
+                print("Not enough rage for this attack")
+    
+    def status(self):
+        super().status()
+        print(f"Rage: {self.rage}\nAbility cooldown: {self.cooldown}")
+
+class Item:
+    def __init__(self,name,duribility):
+        self.name=name
+        self.dur=duribility
+        self.equiped_to=None
+    
+    def dur_check(self):
+        if self.dur<=0:
+            return False
+        else:
+            return True
+        
+class Weapon(Item):
+    def __init__(self,name,duribility,attack_boost):
+        super().__init__(name,duribility)
+        self.attack_boost=attack_boost
+        
+class Armor(Item):
+    def __init__(self,name,duribility,def_boost):
+        super().__init__(name,duribility)
+        self.def_boost=def_boost
+            
+class Game:
+    def __init__(self):
+        self.characters=[]
+        
+    def add_character(self,character):
+        self.characters.append(character)
+        
+    def battle(self, character1,character2):
+        x=True
+        print(f"{character1.name}'s Turn")
+        character1.status()
+        if character1.classc=="mage":
+            while x:
+                action=input("Cast Fireball, Heal, or Attack: ")
+                if action.lower()=="fireball":
+                    character1.cast_spell(action.lower(),character2)
+                    x=False
+                elif action.lower()=="heal":
+                    character1.cast_spell(action.lower(),character2)
+                    x=False
+                elif action.lower()=="attack":
+                    character1.attack(character2)
+                    x=False
+                else:
+                    print("Invalid action try again")
+                    
+        elif character1.classc=="warrior":
+            while x:
+                action=input("Attack or use Power Strike: ")
+                if action.lower()=="attack":
+                    character1.attack(character2)
+                    x=False
+                elif action.lower()=="power strike":
+                    character1.power_strike(character2)
+                    x=False
+                else:
+                    print("Invalid action try again")
+    
+    def start_battle(self):
+        if len(self.characters)!=2:
+            print("Only 2 characters can battle at a time")
+        else:
+            x=True
+            while x:
+                self.battle(self.characters[0],self.characters[1])
+                print(f"\n")
+                if not self.characters[1].is_alive():
+                    self.characters[1].status()
+                    print(f"\n")
+                    print(f"{self.characters[1].name} has died\n{self.characters[0].name} Wins")
+                    break
+                if self.characters[1].is_alive:
+                    self.battle(self.characters[1],self.characters[0])
+                    print(f"\n")
+                if not self.characters[0].is_alive():
+                    self.characters[0].status()
+                    print(f"\n")
+                    print(f"{self.characters[0].name} has died\n{self.characters[1].name} Wins")
+                    break
